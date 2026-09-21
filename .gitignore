@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.pckl
+.env
+.env.*
+
+# Training data is too large for GitHub (~2GB); keep locally or use Git LFS.
+Dataset/
+
+# User-uploaded audio at runtime
+User/static/uploads/
+Admin/static/uploads/
+
+*.log
+.DS_Store
+Thumbs.db

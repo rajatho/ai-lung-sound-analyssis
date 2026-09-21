@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Report {{ report_index }} — {{ detection.disease }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --primary-dark: #1e40af; --text: #0f172a; --muted: #64748b; --success: #10b981; --warning: #f59e0b; --radius: 18px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: linear-gradient(160deg, #eef2ff, #f8fafc); color: var(--text); min-height: 100vh; }
+        .navbar { background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 0.85rem 2rem; display: flex; align-items: center; gap: 1rem; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 16px rgba(15,23,42,0.06); }
+        .navbar-brand { font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; text-decoration: none; }
+        .navbar-right { margin-left: auto; display: flex; gap: 0.65rem; flex-wrap: wrap; }
+        .user-badge { background: #eff6ff; color: var(--primary-dark); padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+        .nav-pill { text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 999px; border: 1px solid #e2e8f0; color: var(--muted); background: #fff; }
+        .nav-pill.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .hero { background: linear-gradient(-45deg, #1e3a8a, #2563eb, #0891b2); color: #fff; padding: 2rem 1.5rem 2.75rem; text-align: center; }
+        .hero h1 { font-size: clamp(1.4rem, 3.5vw, 2rem); font-weight: 800; }
+        .hero p { margin-top: 0.5rem; opacity: 0.9; font-size: 0.95rem; }
+        .container { max-width: 960px; margin: -1.75rem auto 0; padding: 0 1.25rem 2.5rem; }
+        .report-shell { background: #fff; border-radius: var(--radius); box-shadow: 0 16px 48px rgba(37,99,235,0.12); border: 1px solid #e2e8f0; overflow: hidden; }
+        .report-top { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: #fff; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .report-top h2 { font-size: 1.1rem; font-weight: 800; }
+        .btn-print { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: #fff; padding: 0.5rem 1rem; border-radius: 10px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .report-meta { display: flex; flex-wrap: wrap; gap: 0.55rem; padding: 1rem 1.5rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .meta-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; background: #fff; border: 1px solid #e2e8f0; padding: 0.4rem 0.75rem; border-radius: 999px; }
+        .meta-chip i { color: var(--primary); }
+        .report-body { padding: 1.35rem 1.5rem 1.5rem; }
+        .decision-banner { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 12px; padding: 0.65rem 1rem; font-size: 0.85rem; font-weight: 700; margin-bottom: 1rem; }
+        .decision-banner.secondary { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+        .result-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1.35rem; border-radius: var(--radius); background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 1px solid #a7f3d0; }
+        .result-header.warning { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-color: #fdba74; }
+        .result-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+        .result-disease { font-size: 2rem; font-weight: 800; color: var(--success); }
+        .result-header.warning .result-disease { color: #ea580c; }
+        .score-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; min-width: 240px; }
+        .score-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 0.85rem; text-align: center; }
+        .score-card strong { display: block; font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+        .score-card span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 700; }
+        .desc-box { background: #f0f9ff; border-left: 4px solid var(--primary); border-radius: 12px; padding: 1.15rem; margin-top: 1rem; line-height: 1.7; }
+        .desc-box h6 { font-weight: 800; margin-bottom: 0.45rem; color: var(--primary-dark); }
+        .audio-card { margin-top: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; }
+        audio { width: 100%; margin-top: 0.45rem; }
+        .section-title { font-size: 0.95rem; font-weight: 800; margin: 1.25rem 0 0.75rem; display: flex; align-items: center; gap: 0.4rem; }
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.15rem; }
+        .chart-card h6 { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.65rem; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem; }
+        .info-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.1rem; background: #fff; }
+        .info-box.causes { border-top: 3px solid var(--warning); }
+        .info-box.precautions { border-top: 3px solid var(--primary); }
+        .info-box h6 { font-weight: 800; font-size: 0.88rem; margin-bottom: 0.45rem; }
+        .info-box p { white-space: pre-line; font-size: 0.875rem; line-height: 1.65; color: #374151; }
+        .heatmap-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-top: 0.75rem; }
+        .heatmap-cell { border-radius: 10px; padding: 0.75rem 0.4rem; text-align: center; font-size: 0.72rem; font-weight: 700; border: 2px solid transparent; }
+        .heatmap-cell.detected { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+        .heatmap-cell.detected-alt { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.25); }
+        .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.35rem; }
+        .btn { flex: 1; min-width: 160px; text-align: center; text-decoration: none; font-weight: 700; padding: 0.75rem 1rem; border-radius: 12px; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
+        .btn-outline { border: 1.5px solid var(--primary); color: var(--primary); background: #fff; }
+        @media (max-width: 640px) { .charts-row, .info-grid, .score-cards { grid-template-columns: 1fr; } .heatmap-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media print { .navbar, .hero, .actions, .btn-print { display: none !important; } }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <a href="{{ url_for('home') }}" class="navbar-brand"><i class="bi bi-lungs-fill"></i> Respiratory Detection</a>
+    <div class="navbar-right">
+        {% if total_reports > 1 %}
+        <a href="{{ url_for('reports_hub') }}" class="nav-pill"><i class="bi bi-grid me-1"></i>All decisions</a>
+        {% for i in range(1, total_reports + 1) %}
+        <a href="{{ url_for('report_page', index=i) }}" class="nav-pill {% if i == report_index %}active{% endif %}">Report {{ i }}</a>
+        {% endfor %}
+        {% endif %}
+        <span class="user-badge"><i class="bi bi-person-circle me-1"></i>{{ username }}</span>
+    </div>
+</nav>
+
+<div class="hero">
+    <h1><i class="bi bi-file-earmark-medical-fill me-2"></i>
+        {% if report_index == 1 %}Primary{% else %}Secondary{% endif %} diagnosis report
+    </h1>
+    <p>Decision {{ report_index }} of {{ total_reports }} — {{ detection.disease }}</p>
+</div>
+
+<div class="container">
+    <div class="report-shell" id="reportPrint">
+        <div class="report-top">
+            <div>
+                <h2><i class="bi bi-clipboard2-pulse"></i> Respiratory analysis report #{{ report_index }}</h2>
+                <p style="opacity:0.9;font-size:0.85rem;margin-top:0.25rem;">CNN + MFCC lung sound classifier</p>
+            </div>
+            <button type="button" class="btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+        </div>
+        <div class="report-meta">
+            <span class="meta-chip"><i class="bi bi-person-circle"></i> {{ username }}</span>
+            <span class="meta-chip"><i class="bi bi-bullseye"></i> {{ detection.disease }}</span>
+            <span class="meta-chip"><i class="bi bi-graph-up"></i> Confidence {{ detection.confidence }}%</span>
+            <span class="meta-chip"><i class="bi bi-check2-square"></i> Model accuracy {{ detection.accuracy }}%</span>
+        </div>
+        <div class="report-body">
+            <div class="decision-banner {% if report_index != 1 %}secondary{% endif %}">
+                {% if report_index == 1 %}
+                <i class="bi bi-1-circle-fill me-1"></i> Primary AI decision for this audio sample
+                {% else %}
+                <i class="bi bi-2-circle-fill me-1"></i> Secondary AI decision (co-occurring likelihood)
+                {% endif %}
+            </div>
+
+            <div class="result-header {% if detection.disease != 'Healthy' %}warning{% endif %}">
+                <div>
+                    <div class="result-label">Detected condition</div>
+                    <div class="result-disease">{{ detection.disease }}</div>
+                </div>
+                <div class="score-cards">
+                    <div class="score-card">
+                        <strong>{{ detection.confidence }}%</strong>
+                        <span>Confidence</span>
+                    </div>
+                    <div class="score-card">
+                        <strong>{{ detection.accuracy }}%</strong>
+                        <span>Model accuracy</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="desc-box">
+                <h6><i class="bi bi-info-circle me-1"></i>Clinical summary</h6>
+                <p>{{ detection.description }}</p>
+            </div>
+
+            {% if filename %}
+            <div class="audio-card">
+                <div class="result-label">Analyzed audio</div>
+                <audio controls src="/{{ filename }}"></audio>
+            </div>
+            {% endif %}
+
+            <div class="section-title"><i class="bi bi-bar-chart-line"></i> Visual analytics</div>
+            <div class="charts-row">
+                <div class="chart-card">
+                    <h6>Class probabilities</h6>
+                    <canvas id="barChart" height="220"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h6>Distribution</h6>
+                    <canvas id="doughnutChart" height="220"></canvas>
+                </div>
+            </div>
+            <div class="chart-card" style="margin-top:1rem;">
+                <h6>Intensity heatmap</h6>
+                <canvas id="heatmapChart" height="120"></canvas>
+                <div class="heatmap-grid" id="heatmapGrid"></div>
+            </div>
+
+            <div class="section-title"><i class="bi bi-heart-pulse"></i> Health guidance</div>
+            <div class="info-grid">
+                <div class="info-box causes">
+                    <h6><i class="bi bi-exclamation-triangle me-1"></i>Possible causes</h6>
+                    <p>{{ detection.causes }}</p>
+                </div>
+                <div class="info-box precautions">
+                    <h6><i class="bi bi-shield-check me-1"></i>Precautions</h6>
+                    <p>{{ detection.prevention }}</p>
+                </div>
+            </div>
+
+            <div class="actions">
+                <a href="{{ url_for('home') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>New analysis</a>
+                {% if total_reports > 1 and report_index == 1 %}
+                <a href="{{ url_for('report_page', index=2) }}" class="btn btn-outline"><i class="bi bi-arrow-right-circle me-1"></i>View decision 2</a>
+                {% elif total_reports > 1 and report_index == 2 %}
+                <a href="{{ url_for('report_page', index=1) }}" class="btn btn-outline"><i class="bi bi-arrow-left-circle me-1"></i>View decision 1</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const labels = {{ prediction.labels | tojson }};
+    const probMap = {{ prediction.probabilities | tojson }};
+    const probValues = labels.map(l => probMap[l]);
+    const detected = {{ detection.disease | tojson }};
+    const highlightLabels = {{ prediction.detections | tojson }}.map(d => d.disease);
+
+    const colors = labels.map(l => highlightLabels.includes(l) ? '#2563eb' : '#cbd5e1');
+
+    new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Probability (%)', data: probValues, backgroundColor: colors, borderRadius: 6 }] },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }, x: { ticks: { font: { size: 10 } } } }
+        }
+    });
+
+    new Chart(document.getElementById('doughnutChart'), {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{ data: probValues, backgroundColor: ['#22c55e','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'], borderWidth: 2, borderColor: '#fff' }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } }, cutout: '60%' }
+    });
+
+    function heatColor(value) {
+        const t = Math.min(value / 100, 1);
+        if (t < 0.5) {
+            const u = t * 2;
+            return `rgb(${Math.round(219 + u * 33)}, ${Math.round(234 - u * 23)}, ${Math.round(254 - u * 177)})`;
+        }
+        const u = (t - 0.5) * 2;
+        return `rgb(${Math.round(252 - u * 32)}, ${Math.round(211 - u * 173)}, ${Math.round(77 - u * 39)})`;
+    }
+
+    function textColor(value) { return value > 45 ? '#fff' : '#1e293b'; }
+
+    new Chart(document.getElementById('heatmapChart'), {
+        type: 'matrix',
+        data: {
+            datasets: [{
+                label: 'Intensity',
+                data: labels.map((label, i) => ({ x: label, y: 'Intensity', v: probValues[i] })),
+                backgroundColor(ctx) { return heatColor(ctx.dataset.data[ctx.dataIndex].v); },
+                borderColor: '#fff', borderWidth: 2,
+                width: ({ chart }) => (chart.chartArea?.width / labels.length || 60) - 6,
+                height: ({ chart }) => (chart.chartArea?.height || 80) - 10,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { type: 'category', labels, ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 }, grid: { display: false } },
+                y: { type: 'category', labels: ['Intensity'], grid: { display: false } }
+            }
+        }
+    });
+
+    const grid = document.getElementById('heatmapGrid');
+    const primaryDisease = highlightLabels[0];
+    const secondaryDisease = highlightLabels[1] || null;
+    labels.forEach((label, i) => {
+        const val = probValues[i];
+        const cell = document.createElement('div');
+        let cls = 'heatmap-cell';
+        if (label === detected) cls += ' detected';
+        else if (label === secondaryDisease && label !== detected) cls += ' detected-alt';
+        cell.className = cls;
+        cell.style.background = heatColor(val);
+        cell.style.color = textColor(val);
+        cell.innerHTML = `<div>${label}</div><div style="font-size:1rem;">${val}%</div>`;
+        grid.appendChild(cell);
+    });
+</script>
+</body>
+</html>
