@@ -1,11 +1,18 @@
 import os
+import hashlib
 import librosa
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import librosa.display
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_WEIGHTS = os.path.join(BASE_DIR, '..', 'Model', 'model_weights.h5')
+GRAPHS_DIR = os.path.join(BASE_DIR, '..', 'graphs')
+UPLOAD_DIR = os.path.join(BASE_DIR, 'static', 'uploads')
 
 LABELS = [
     'Healthy', 'Asthma', 'Bronchiectasis', 'Bronchiolitis',
@@ -188,6 +195,48 @@ def load_classifier():
     return _classifier
 
 
+def training_graph_paths():
+    accuracy = os.path.join(GRAPHS_DIR, 'accuracy.png')
+    loss = os.path.join(GRAPHS_DIR, 'loss.png')
+    return {
+        'has_accuracy': os.path.exists(accuracy),
+        'has_loss': os.path.exists(loss),
+    }
+
+
+def build_audio_spectrogram(filename):
+    """Mel spectrogram visualization for the uploaded audio."""
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    x, sr = librosa.load(filename, sr=22050, duration=30)
+    if len(x) == 0:
+        return None
+
+    mel = librosa.feature.melspectrogram(y=x, sr=sr, n_mels=128, fmax=8000)
+    mel_db = librosa.power_to_db(mel, ref=np.max)
+
+    digest = hashlib.md5(filename.encode('utf-8')).hexdigest()[:10]
+    out_name = f'spectrogram_{digest}.png'
+    out_path = os.path.join(UPLOAD_DIR, out_name)
+
+    fig, ax = plt.subplots(figsize=(11, 4.5))
+    img = librosa.display.specshow(
+        mel_db,
+        sr=sr,
+        x_axis='time',
+        y_axis='mel',
+        ax=ax,
+        cmap='magma',
+    )
+    fig.colorbar(img, ax=ax, format='%+2.0f dB')
+    ax.set_title('Uploaded sound — Mel spectrogram', fontsize=11, fontweight='bold')
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=130, bbox_inches='tight')
+    plt.close(fig)
+
+    return os.path.join('static', 'uploads', out_name).replace('\\', '/')
+
+
 def _detection_for(label, confidence):
     return {
         'disease': label,
@@ -241,6 +290,8 @@ def predict(filename):
 
     primary = detections[0]
 
+    spectrogram_path = build_audio_spectrogram(filename)
+
     return {
         'disease': primary['disease'],
         'description': primary['description'],
@@ -252,4 +303,5 @@ def predict(filename):
         'dual': dual,
         'probabilities': probabilities,
         'labels': LABELS,
+        'spectrogram': spectrogram_path,
     }

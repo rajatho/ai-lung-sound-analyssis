@@ -337,63 +337,49 @@
 
         .section-title i { color: var(--primary); }
 
-        .steps {
+        .model-metrics {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.75rem;
         }
 
-        .step {
-            background: linear-gradient(145deg, #f8fafc, #eff6ff);
-            border-radius: 14px;
-            padding: 1.1rem 0.75rem;
-            text-align: center;
-            transition: transform 0.25s, box-shadow 0.25s;
+        .metric-card {
+            background: linear-gradient(180deg, #fff, #f8fafc);
             border: 1px solid #e2e8f0;
-            position: relative;
-            overflow: hidden;
+            border-radius: 16px;
+            padding: 1rem;
+            transition: transform 0.25s, box-shadow 0.25s;
         }
 
-        .step::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            transform: scaleX(0);
-            transition: transform 0.3s;
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(37, 99, 235, 0.1);
         }
 
-        .step:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
-        }
-
-        .step:hover::after { transform: scaleX(1); }
-
-        .step-num {
-            width: 32px; height: 32px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: #fff;
-            border-radius: 50%;
-            display: inline-flex;
+        .metric-card h3 {
+            font-size: 0.88rem;
+            font-weight: 800;
+            margin-bottom: 0.65rem;
+            display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+            gap: 0.4rem;
+            color: var(--primary-dark);
         }
 
-        .step p { font-size: 0.82rem; color: var(--muted); font-weight: 600; }
-        .step i.step-icon {
-            display: block;
-            font-size: 1.25rem;
-            color: var(--primary);
-            margin-bottom: 0.35rem;
+        .metric-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+        }
+
+        .metric-caption {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            line-height: 1.45;
         }
 
         .analysis-section {
@@ -1083,7 +1069,7 @@
         }
 
         @media (max-width: 640px) {
-            .steps, .charts-row, .info-grid, .features-row, .analysis-layout { grid-template-columns: 1fr; }
+            .model-metrics, .charts-row, .info-grid, .features-row, .analysis-layout { grid-template-columns: 1fr; }
             .features-row { margin-top: -1.5rem; }
             .heatmap-grid { grid-template-columns: repeat(2, 1fr); }
             .hero-stats { gap: 0.65rem; }
@@ -1151,24 +1137,25 @@
 
     <div class="main-card">
 
-        <div class="section-title"><i class="bi bi-list-check"></i> How it works</div>
-        <div class="steps">
-            <div class="step">
-                <div class="step-num">1</div>
-                <i class="bi bi-cloud-upload step-icon"></i>
-                <p>Upload audio</p>
+        {% if training_graphs and (training_graphs.has_accuracy or training_graphs.has_loss) %}
+        <div class="section-title"><i class="bi bi-graph-up-arrow"></i> Model training performance</div>
+        <div class="model-metrics">
+            {% if training_graphs.has_accuracy %}
+            <div class="metric-card">
+                <h3><i class="bi bi-check2-circle"></i> Accuracy curve</h3>
+                <img src="{{ url_for('serve_training_graph', filename='accuracy.png') }}" alt="CNN epoch-wise accuracy">
+                <p class="metric-caption">Epoch-wise accuracy of the CNN classifier during training.</p>
             </div>
-            <div class="step">
-                <div class="step-num">2</div>
-                <i class="bi bi-robot step-icon"></i>
-                <p>AI analysis</p>
+            {% endif %}
+            {% if training_graphs.has_loss %}
+            <div class="metric-card">
+                <h3><i class="bi bi-activity"></i> Loss function</h3>
+                <img src="{{ url_for('serve_training_graph', filename='loss.png') }}" alt="CNN epoch-wise loss">
+                <p class="metric-caption">Training loss decreases as the model learns lung sound patterns.</p>
             </div>
-            <div class="step">
-                <div class="step-num">3</div>
-                <i class="bi bi-graph-up-arrow step-icon"></i>
-                <p>View results</p>
-            </div>
+            {% endif %}
         </div>
+        {% endif %}
 
         {% if error %}
         <div class="alert-custom"><i class="bi bi-exclamation-circle me-2"></i>{{ error }}</div>

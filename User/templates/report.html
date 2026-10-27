@@ -63,8 +63,46 @@
         .btn { flex: 1; min-width: 160px; text-align: center; text-decoration: none; font-weight: 700; padding: 0.75rem 1rem; border-radius: 12px; }
         .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; }
         .btn-outline { border: 1.5px solid var(--primary); color: var(--primary); background: #fff; }
+        .spectrogram-card {
+            margin-top: 1rem;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 1.15rem;
+        }
+
+        .spectrogram-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            margin-top: 0.5rem;
+        }
+
+        .spectrogram-caption {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-top: 0.5rem;
+            line-height: 1.5;
+        }
+
         @media (max-width: 640px) { .charts-row, .info-grid, .score-cards { grid-template-columns: 1fr; } .heatmap-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media print { .navbar, .hero, .actions, .btn-print { display: none !important; } }
+
+        @media print {
+            @page { size: A4 portrait; margin: 10mm; }
+            body { background: #fff !important; font-size: 11pt; }
+            .navbar, .hero, .actions, .btn-print { display: none !important; }
+            .container { margin-top: 0; max-width: 100%; padding: 0; }
+            .report-shell { box-shadow: none; border: 1px solid #ccc; border-radius: 0; }
+            .report-top { background: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .report-meta, .result-header, .decision-banner, .desc-box, .chart-card, .spectrogram-card, .info-box {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .charts-row { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+            canvas { max-height: 180px !important; }
+            .heatmap-grid { grid-template-columns: repeat(4, 1fr); }
+        }
     </style>
 </head>
 <body>
@@ -157,6 +195,14 @@
                 <canvas id="heatmapChart" height="120"></canvas>
                 <div class="heatmap-grid" id="heatmapGrid"></div>
             </div>
+
+            {% if prediction.spectrogram %}
+            <div class="spectrogram-card">
+                <div class="section-title" style="margin-top:0;"><i class="bi bi-soundwave"></i> Uploaded sound spectrogram</div>
+                <p class="spectrogram-caption">Mel spectrogram of your recording — frequency content over time (darker/brighter = stronger energy).</p>
+                <img src="/{{ prediction.spectrogram }}" alt="Audio mel spectrogram">
+            </div>
+            {% endif %}
 
             <div class="section-title"><i class="bi bi-heart-pulse"></i> Health guidance</div>
             <div class="info-grid">

@@ -1,12 +1,13 @@
 import os
 import socket
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash, send_from_directory, abort
 from flask_mysqldb import MySQL
 from werkzeug.utils import secure_filename
 import controller as ct
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
+GRAPHS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'graphs')
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'ogg', 'flac'}
 
 
@@ -147,12 +148,20 @@ def reg():
     return redirect(url_for('login', tab='register'))
 
 
+@app.route('/graphs/<path:filename>')
+def serve_training_graph(filename):
+    if filename not in ('accuracy.png', 'loss.png'):
+        abort(404)
+    return send_from_directory(GRAPHS_FOLDER, filename)
+
+
 @app.route('/home')
 @is_logged_in
 def home():
+    graphs = ct.training_graph_paths()
     return render_template(
         'index.html', url=url, username=session.get('username'),
-        error=None
+        error=None, training_graphs=graphs
     )
 
 
@@ -173,20 +182,21 @@ def predict():
     if 'file' not in request.files:
         return render_template(
             'index.html', url=url, username=session.get('username'),
-            error='No file selected.'
+            error='No file selected.', training_graphs=ct.training_graph_paths()
         )
 
     uploaded = request.files['file']
     if uploaded.filename == '':
         return render_template(
             'index.html', url=url, username=session.get('username'),
-            error='No file selected.'
+            error='No file selected.', training_graphs=ct.training_graph_paths()
         )
 
     if not allowed_file(uploaded.filename):
         return render_template(
             'index.html', url=url, username=session.get('username'),
-            error='Unsupported format. Please upload WAV, MP3, OGG, or FLAC.'
+            error='Unsupported format. Please upload WAV, MP3, OGG, or FLAC.',
+            training_graphs=ct.training_graph_paths()
         )
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -200,7 +210,8 @@ def predict():
     except Exception as exc:
         return render_template(
             'index.html', url=url, username=session.get('username'),
-            error=str(exc)
+            error=str(exc),
+            training_graphs=ct.training_graph_paths()
         )
 
     session['prediction'] = {
@@ -209,6 +220,7 @@ def predict():
         'labels': result['labels'],
         'dual': result['dual'],
         'model_accuracy': result['accuracy'],
+        'spectrogram': result.get('spectrogram'),
     }
     session['audio_file'] = file_path
 
